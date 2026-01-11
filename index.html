@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixelador Bibi v6 - True Art Engine</title>
+    <style>
+        :root {
+            --bg-dark: #101014;
+            --bg-panel: #1f1f23;
+            --accent: #6d28d9;
+            --accent-hover: #8b5cf6;
+            --text-main: #ececec;
+            --text-muted: #a1a1aa;
+            --border: #3f3f46;
+            --success: #15803d;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, system-ui, sans-serif; user-select: none; }
+
+        body {
+            margin: 0; background-color: var(--bg-dark); color: var(--text-main);
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        aside {
+            width: 380px;
+            background-color: var(--bg-panel); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            z-index: 20;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+        }
+
+        .sidebar-header { padding: 20px 20px 10px 20px; background: var(--bg-panel); }
+        h1 { margin: 0; font-size: 1.3rem; color: #fff; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px;}
+        .version-badge { font-size: 0.7rem; background: var(--accent); padding: 2px 8px; border-radius: 12px; color: white; font-weight: bold; box-shadow: 0 2px 10px rgba(109, 40, 217, 0.4); }
+
+        .scroll-area { overflow-y: auto; flex: 1; padding: 0 20px 20px 20px; scrollbar-width: thin; scrollbar-color: var(--border) var(--bg-panel); }
+
+        /* Tabs */
+        .mode-tabs { display: flex; background: #18181b; margin: 15px 20px; border-radius: 8px; padding: 4px; border: 1px solid var(--border); }
+        .tab-btn {
+            flex: 1; background: none; border: none; padding: 8px; color: var(--text-muted);
+            cursor: pointer; font-weight: 600; border-radius: 6px; transition: 0.2s; font-size: 0.85rem;
+        }
+        .tab-btn.active { background: var(--border); color: white; }
+
+        /* Controles */
+        h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 20px 0 10px 0; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        h2::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .control-group { margin-bottom: 5px; }
+        label { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 6px; color: #d4d4d8; }
+        label span { font-family: 'Consolas', monospace; font-size: 0.8rem; color: var(--accent-hover); opacity: 0.9; }
+
+        input[type="range"] {
+            width: 100%; accent-color: var(--accent-hover); cursor: pointer; height: 4px; background: #444; border-radius: 2px; outline: none; margin-bottom: 12px; display: block;
+        }
+
+        .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        button {
+            flex: 1; background: #333; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px;
+            cursor: pointer; transition: 0.2s; font-size: 0.8rem; font-weight: 600;
+        }
+        button:hover { background: #444; border-color: #666; }
+        button.primary { background: var(--accent); border-color: var(--accent); }
+        button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        button.camera-btn { background: var(--success); border-color: var(--success); padding: 15px; font-size: 1rem; }
+
+        select, input[type="number"], input[type="color"] {
+            background: #18181b; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 6px; width: 100%; font-size: 0.85rem; outline: none;
+        }
+        input[type="number"] { width: 70px; text-align: right; }
+        input[type="color"] { padding: 0; width: 40px; height: 28px; border: none; overflow: hidden; }
+
+        .checkbox-row { justify-content: flex-start; gap: 10px; cursor: pointer; padding: 6px 0; }
+        .checkbox-row input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+        /* Main Area */
+        main {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-color: #0f0f10;
+            background-image: radial-gradient(#27272a 1px, transparent 1px);
+            background-size: 20px 20px;
+            position: relative; overflow: hidden; padding: 20px;
+        }
+
+        .canvas-container {
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        canvas {
+            image-rendering: pixelated;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            max-width: 90%; max-height: 90%;
+            transition: transform 0.1s;
+        }
+
+        #drop-zone {
+            position: absolute; inset: 0; background: rgba(109, 40, 217, 0.2); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 100;
+        }
+        #drop-zone.active { display: flex; }
+        .dashed-box { border: 2px dashed var(--accent-hover); padding: 40px; border-radius: 12px; color: white; font-weight: bold; background: rgba(0,0,0,0.8); }
+
+        .floating-info {
+            position: absolute; top: 20px; background: rgba(0,0,0,0.7); color: #ccc;
+            padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; border: 1px solid #333; pointer-events: none;
+        }
+
+        /* Helpers */
+        .hidden { display: none !important; }
+        .new-feature { color: #4ade80; font-size: 0.7rem; font-weight: bold; margin-left: 5px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="sidebar-header">
+            <h1>Pixelador Bibi <span class="version-badge">v6</span></h1>
+        </div>
+
+        <div class="mode-tabs">
+            <button class="tab-btn active" onclick="switchMode('image')">🖼️ Imagem</button>
+            <button class="tab-btn" onclick="switchMode('camera')">📷 Câmera</button>
+        </div>
+
+        <div class="scroll-area">
+            <div id="imageControls">
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                <button class="full" onclick="document.getElementById('fileInput').click()" style="width: 100%; margin-bottom: 10px;">📁 Carregar Imagem</button>
+            </div>
+            <div id="cameraControls" class="hidden">
+                <button class="full camera-btn" id="btnTakePhoto" style="width: 100%; margin-bottom: 10px;">📸 Capturar</button>
+            </div>
+
+            <h2>Resolução</h2>
+            <div class="btn-row">
+                <button onclick="setPreset(48)">48px</button>
+                <button onclick="setPreset(64)">64px</button>
+                <button onclick="setPreset(96)">96px</button>
+                <button onclick="setPreset(128)">128px</button>
+            </div>
+            <label>Largura Total <span id="lblWidth">64px</span></label>
+            <input type="range" id="inpWidth" min="16" max="320" value="64" step="2">
+
+            <h2>Engine Pixel Art <span class="new-feature">Novo</span></h2>
+
+            <label title="Cria linhas escuras em áreas de contraste">Força do Contorno (Outline) <span id="lblEdge">0%</span></label>
+            <input type="range" id="rngEdge" min="0" max="100" value="40">
+
+            <label title="Remove pixels sozinhos para limpar a arte">Limpeza Inteligente <span id="lblClean">0</span></label>
+            <input type="range" id="rngClean" min="0" max="5" value="1" step="1">
+
+            <label title="Padrão de pontilhado estilo retrô">Dithering (Bayer) <span id="lblDither">15%</span></label>
+            <input type="range" id="rngDither" min="0" max="50" value="15">
+
+            <h2>Paleta & Cores</h2>
+            <select id="selPalette" style="margin-bottom: 10px;">
+                <option value="auto">⭐ Automática (Otimizada)</option>
+                <option value="gb">Game Boy (4 Cores)</option>
+                <option value="nes">NES (Famicom)</option>
+                <option value="pico8">PICO-8 (Fantasy)</option>
+                <option value="arne16">Arne-16 (Perfeita)</option>
+                <option value="c64">Commodore 64</option>
+                <option value="db32">Dawnbringer 32</option>
+                <option value="bw">1-Bit (P&B)</option>
+            </select>
+
+            <div id="autoColorsBox">
+                <label>Qtd. Cores <span id="lblColors">32</span></label>
+                <input type="range" id="rngColors" min="2" max="64" value="32">
+            </div>
+
+            <h2>Ajustes de Imagem</h2>
+            <button onclick="autoAdjust()" style="width:100%; margin-bottom:10px;">✨ Melhoria Mágica</button>
+
+            <label>Brilho <span id="lblBri">100%</span></label>
+            <input type="range" id="rngBri" min="0" max="200" value="110">
+
+            <label>Contraste <span id="lblCon">100%</span></label>
+            <input type="range" id="rngCon" min="0" max="200" value="115">
+
+            <label>Saturação <span id="lblSat">100%</span></label>
+            <input type="range" id="rngSat" min="0" max="200" value="120">
+
+            <h2>Exportar</h2>
+            <div class="btn-row">
+                <button class="primary" onclick="download(1)">1x</button>
+                <button class="primary" onclick="download(10)">10x (HD)</button>
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <div class="floating-info" id="infoBar">Aguardando imagem...</div>
+        <div id="drop-zone"><div class="dashed-box">Solte aqui</div></div>
+
+        <div class="canvas-container" id="viewport">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <video id="video" autoplay playsinline style="display:none"></video>
+        <canvas id="buffer" style="display:none"></canvas>
+    </main>
+
+    <script>
+        // --- Configurações & Paletas ---
+        const PALETTES = {
+            gb: [[15,56,15], [48,98,48], [139,172,15], [202,220,159]],
+            pico8: [[0,0,0],[29,43,83],[126,37,83],[0,135,81],[171,82,54],[95,87,79],[194,195,199],[255,241,232],[255,0,77],[255,163,0],[255,236,39],[0,228,54],[41,173,255],[131,118,156],[255,119,168],[255,204,170]],
+            nes: [[124,124,124],[0,0,252],[0,0,188],[68,40,188],[148,0,132],[168,0,32],[168,16,0],[136,20,0],[80,48,0],[0,120,0],[0,104,0],[0,88,0],[0,64,88],[0,0,0],[0,0,0],[0,0,0],[188,188,188],[0,120,248],[0,88,248],[104,68,252],[216,0,204],[228,0,88],[248,56,0],[228,92,16],[172,124,0],[0,184,0],[0,168,0],[0,168,68],[0,136,136],[0,0,0],[0,0,0],[0,0,0],[248,248,248],[60,188,252],[104,136,252],[152,120,248],[248,120,248],[248,88,152],[248,120,88],[252,160,68],[248,184,0],[184,248,24],[88,216,84],[88,248,152],[0,232,216],[120,120,120],[0,0,0],[0,0,0],[252,252,252],[164,228,252],[184,184,248],[216,184,248],[248,184,248],[248,164,192],[240,208,176],[252,224,168],[248,216,120],[216,248,120],[184,248,184],[184,248,216],[0,252,252],[248,216,248]],
+            arne16: [[0,0,0],[157,157,157],[255,255,255],[190,38,51],[224,111,139],[73,60,43],[164,100,34],[235,137,49],[247,226,107],[47,72,78],[68,137,26],[163,206,39],[27,38,50],[0,87,132],[49,162,242],[178,220,239]],
+            c64: [[0,0,0],[255,255,255],[136,0,0],[170,255,238],[204,68,204],[0,204,85],[0,0,170],[238,238,119],[221,136,85],[102,68,0],[255,119,119],[51,51,51],[119,119,119],[170,255,102],[0,136,255],[187,187,187]],
+            db32: [[0,0,0],[34,32,52],[69,40,60],[102,57,49],[143,86,59],[223,113,38],[217,160,102],[238,195,154],[251,242,54],[153,229,80],[106,190,48],[55,148,110],[75,105,47],[82,75,36],[50,60,57],[63,63,116],[48,96,130],[91,110,225],[99,155,255],[95,205,228],[203,219,252],[255,255,255],[155,173,183],[132,126,135],[105,106,106],[89,86,82],[118,66,138],[172,50,50],[217,87,99],[215,123,186],[143,151,74],[138,111,48]],
+            bw: [[0,0,0],[255,255,255]]
+        };
+
+        const BAYER_MATRIX = [
+            [0, 8, 2, 10],
+            [12, 4, 14, 6],
+            [3, 11, 1, 9],
+            [15, 7, 13, 5]
+        ];
+
+        // --- Estado Global ---
+        const state = {
+            src: null, // Imagem ou Video
+            mode: 'image',
+            width: 64,
+            height: 64,
+            aspect: 1,
+            zoom: 1
+        };
+
+        // --- Refs DOM ---
+        const els = {
+            canvas: document.getElementById('canvas'),
+            buffer: document.getElementById('buffer'),
+            ctx: document.getElementById('canvas').getContext('2d'),
+            bufCtx: document.getElementById('buffer').getContext('2d', { willReadFrequently: true }),
+            viewport: document.getElementById('viewport'),
+            info: document.getElementById('infoBar'),
+            video: document.getElementById('video'),
+            // Inputs
+            width: document.getElementById('inpWidth'),
+            edge: document.getElementById('rngEdge'),
+            clean: document.getElementById('rngClean'),
+            dither: document.getElementById('rngDither'),
+            palette: document.getElementById('selPalette'),
+            colors: document.getElementById('rngColors'),
+            bri: document.getElementById('rngBri'),
+            con: document.getElementById('rngCon'),
+            sat: document.getElementById('rngSat'),
+            // Labels
+            lWidth: document.getElementById('lblWidth'),
+            lEdge: document.getElementById('lblEdge'),
+            lClean: document.getElementById('lblClean'),
+            lDither: document.getElementById('lblDither'),
+            lColors: document.getElementById('lblColors'),
+            lBri: document.getElementById('lblBri'),
+            lCon: document.getElementById('lblCon'),
+            lSat: document.getElementById('lblSat')
+        };
+
+        // --- Inicialização ---
+        function init() {
+            // Eventos de Upload
+            const dz = document.getElementById('drop-zone');
+            window.addEventListener('dragover', e => { e.preventDefault(); if(state.mode==='image') dz.classList.add('active'); });
+            window.addEventListener('dragleave', e => { if(e.target===dz) dz.classList.remove('active'); });
+            window.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('active'); handleFile(e.dataTransfer.files[0]); });
+            document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+
+            // Paste
+            window.addEventListener('paste', e => {
+                const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image'));
+                if(item) handleFile(item.getAsFile());
+            });
+
+            // Zoom
+            els.viewport.addEventListener('wheel', e => {
+                e.preventDefault();
+                state.zoom = Math.max(0.5, Math.min(10, state.zoom + (e.deltaY > 0 ? -0.2 : 0.2)));
+                updateZoom();
+            });
+
+            // Listeners de UI
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(inp => {
+                inp.addEventListener('input', () => {
+                    updateLabels();
+                    render();
+                });
+            });
+
+            // Loop de animação se for camera
+            requestAnimationFrame(loop);
+
+            // Estado inicial
+            updateLabels();
+            autoAdjust(); // Seta valores bons inicialmente
+        }
+
+        function handleFile(file) {
+            if(!file || !file.type.startsWith('image')) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    state.src = img;
+                    state.mode = 'image';
+                    state.aspect = img.width / img.height;
+                    resizeToFit();
+                    render();
+                    els.info.textContent = `Imagem: ${img.width}x${img.height}`;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Modos ---
+        window.switchMode = (mode) => {
+            state.mode = mode;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tab-btn[onclick="switchMode('${mode}')"]`).classList.add('active');
+
+            document.getElementById('imageControls').classList.toggle('hidden', mode !== 'image');
+            document.getElementById('cameraControls').classList.toggle('hidden', mode !== 'camera');
+
+            if(mode === 'camera') startCamera();
+            else stopCamera();
+        };
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                els.video.srcObject = stream;
+                els.video.onloadedmetadata = () => {
+                    state.src = els.video;
+                    state.aspect = els.video.videoWidth / els.video.videoHeight;
+                    resizeToFit();
+                };
+            } catch(e) { alert("Erro na câmera: " + e.message); switchMode('image'); }
+        }
+
+        function stopCamera() {
+            if(els.video.srcObject) els.video.srcObject.getTracks().forEach(t => t.stop());
+            els.video.srcObject = null;
+        }
+
+        function loop() {
+            if(state.mode === 'camera' && state.src) render();
+            requestAnimationFrame(loop);
+        }
+
+        // --- Core Rendering ---
+
+        function updateLabels() {
+            els.lWidth.textContent = els.width.value + 'px';
+            els.lEdge.textContent = els.edge.value + '%';
+            els.lClean.textContent = els.clean.value;
+            els.lDither.textContent = els.dither.value + '%';
+            els.lColors.textContent = els.colors.value;
+            els.lBri.textContent = els.bri.value + '%';
+            els.lCon.textContent = els.con.value + '%';
+            els.lSat.textContent = els.sat.value + '%';
+            document.getElementById('autoColorsBox').style.display = els.palette.value === 'auto' ? 'block' : 'none';
+        }
+
+        window.setPreset = (w) => { els.width.value = w; updateLabels(); render(); };
+        window.autoAdjust = () => {
+            els.bri.value = 110; els.con.value = 115; els.sat.value = 125;
+            els.edge.value = 40; els.dither.value = 15; els.clean.value = 1;
+            updateLabels(); render();
+        };
+
+        function resizeToFit() {
+            // Ajusta o width com base no aspect ratio atual
+            state.width = parseInt(els.width.value);
+            state.height = Math.round(state.width / state.aspect);
+        }
+
+        function updateZoom() { els.canvas.style.transform = `scale(${state.zoom})`; }
+
+        function render() {
+            if(!state.src) return;
+
+            // 1. Setup Dimensões
+            state.width = parseInt(els.width.value);
+            state.height = Math.round(state.width / state.aspect);
+
+            // Garantir que é par (ajuda no bayer e alinhamento)
+            if(state.width % 2 !== 0) state.width++;
+            if(state.height % 2 !== 0) state.height++;
+
+            els.buffer.width = state.width; els.buffer.height = state.height;
+            els.canvas.width = state.width; els.canvas.height = state.height;
+
+            // 2. Pre-Processing (Brilho/Contraste/Sat)
+            const ctx = els.bufCtx;
+            ctx.filter = `brightness(${els.bri.value}%) contrast(${els.con.value}%) saturate(${els.sat.value}%)`;
+            ctx.drawImage(state.src, 0, 0, state.width, state.height);
+            ctx.filter = 'none';
+
+            // 3. Pixel Processing (The Magic)
+            processPixels();
+        }
+
+        function processPixels() {
+            const w = state.width;
+            const h = state.height;
+            const imgData = els.bufCtx.getImageData(0, 0, w, h);
+            const data = imgData.data; // RGBA array
+
+            // Params
+            const ditherAmt = parseInt(els.dither.value) / 100 * 40;
+            const edgeStrength = parseInt(els.edge.value);
+            const cleanPasses = parseInt(els.clean.value);
+            const paletteId = els.palette.value;
+            const numColors = parseInt(els.colors.value);
+
+            // Setup Palette
+            let palette = null;
+            if(paletteId !== 'auto') palette = PALETTES[paletteId];
+
+            // Buffer para Sobel (Edge detection) - Escala de cinza
+            const gray = new Uint8Array(w * h);
+            for(let i=0; i<w*h; i++) {
+                // Luminância rápida
+                gray[i] = (data[i*4]*0.299 + data[i*4+1]*0.587 + data[i*4+2]*0.114);
+            }
+
+            // Loop Principal: Dither + Quantização + Borda
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+
+                    // 1. Detectar Borda (Sobel simplificado)
+                    let isEdge = false;
+                    if (edgeStrength > 0 && x > 0 && x < w-1 && y > 0 && y < h-1) {
+                        const idx = y * w + x;
+                        const gx = -gray[idx-1] + gray[idx+1]; // Gradiente X
+                        const gy = -gray[idx-w] + gray[idx+w]; // Gradiente Y
+                        const mag = Math.abs(gx) + Math.abs(gy);
+                        if (mag > (255 - edgeStrength * 2)) isEdge = true; // Threshold dinâmico
+                    }
+
+                    if (isEdge) {
+                        data[i] = 20; data[i+1] = 20; data[i+2] = 25; // Quase preto (cor de tinta)
+                        continue;
+                    }
+
+                    // 2. Aplicar Dither (Bayer)
+                    let r = data[i], g = data[i+1], b = data[i+2];
+                    if (ditherAmt > 0) {
+                        const bayer = BAYER_MATRIX[y % 4][x % 4];
+                        const d = (bayer / 16 - 0.5) * ditherAmt;
+                        r = Math.min(255, Math.max(0, r + d));
+                        g = Math.min(255, Math.max(0, g + d));
+                        b = Math.min(255, Math.max(0, b + d));
+                    }
+
+                    // 3. Quantização (Redução de Cores)
+                    if (paletteId === 'auto') {
+                        // Quantização matemática simples
+                        const levels = Math.ceil(Math.pow(numColors, 1/3));
+                        const step = 255 / (levels - 1);
+                        r = Math.round(r / step) * step;
+                        g = Math.round(g / step) * step;
+                        b = Math.round(b / step) * step;
+                    } else {
+                        // Paleta Fixa (Perceptual Distance)
+                        let minInfo = Infinity, best = palette[0];
+                        for (let c of palette) {
+                            // Weighted Euclidean: R*0.3, G*0.59, B*0.11
+                            const dist = ((r-c[0])**2)*0.3 + ((g-c[1])**2)*0.59 + ((b-c[2])**2)*0.11;
+                            if(dist < minInfo) { minInfo = dist; best = c; }
+                        }
+                        r = best[0]; g = best[1]; b = best[2];
+                    }
+
+                    data[i] = r; data[i+1] = g; data[i+2] = b;
+                }
+            }
+
+            // 4. Post-Process: Limpeza de "Órfãos" (Despeckle)
+            // Fazemos isso copiando os dados para não ler o que acabamos de escrever na mesma passada
+            if (cleanPasses > 0) {
+                const copy = new Uint8ClampedArray(data);
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const i = (y * w + x) * 4;
+
+                        // Checa cor atual
+                        const cr = copy[i], cg = copy[i+1], cb = copy[i+2];
+
+                        // Checa vizinhos (Cima, Baixo, Esquerda, Direita)
+                        const neighbors = [
+                            ((y-1)*w + x)*4,
+                            ((y+1)*w + x)*4,
+                            (y*w + (x-1))*4,
+                            (y*w + (x+1))*4
+                        ];
+
+                        let similarCount = 0;
+                        let lastNeighborColor = null;
+
+                        for(let ni of neighbors) {
+                            if (copy[ni] === cr && copy[ni+1] === cg && copy[ni+2] === cb) {
+                                similarCount++;
+                            } else {
+                                lastNeighborColor = [copy[ni], copy[ni+1], copy[ni+2]];
+                            }
+                        }
+
+                        // Se o pixel é totalmente diferente dos 4 vizinhos (orphan),
+                        // mude para a cor do último vizinho verificado (simples majority fill)
+                        if (similarCount === 0 && lastNeighborColor) {
+                            data[i] = lastNeighborColor[0];
+                            data[i+1] = lastNeighborColor[1];
+                            data[i+2] = lastNeighborColor[2];
+                        }
+                    }
+                }
+            }
+
+            // Desenha na tela
+            els.ctx.putImageData(imgData, 0, 0);
+        }
+
+        function download(scale) {
+            if(!state.src) return;
+            const w = state.width * scale;
+            const h = state.height * scale;
+
+            const exportCan = document.createElement('canvas');
+            exportCan.width = w; exportCan.height = h;
+            const ctx = exportCan.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+
+            ctx.drawImage(els.canvas, 0, 0, w, h);
+
+            const link = document.createElement('a');
+            link.download = `pixelart_${Date.now()}.png`;
+            link.href = exportCan.toDataURL();
+            link.click();
+        }
+
+        init();
+    </script>
+</body>
+</html>
