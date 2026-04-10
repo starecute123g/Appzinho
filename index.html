@@ -16,6 +16,8 @@
       --muted: rgba(255,255,255,.80);
       --shadow: 0 24px 80px rgba(0,0,0,.28);
       --shadow2: 0 12px 32px rgba(0,0,0,.18);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
     }
 
     * { box-sizing: border-box; }
@@ -31,6 +33,7 @@
         radial-gradient(circle at 50% 82%, rgba(255,255,255,.14), transparent 26%),
         linear-gradient(135deg, var(--bg1), var(--bg2) 40%, var(--bg3) 72%, var(--bg4));
       animation: bgShift 12s ease-in-out infinite alternate;
+      -webkit-tap-highlight-color: transparent;
     }
 
     @keyframes bgShift{
@@ -46,12 +49,13 @@
     }
 
     .topbar{
-      padding: 16px 16px 0;
+      padding: calc(16px + var(--safe-top)) 16px 0;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 12px;
-      z-index: 5;
+      z-index: 9;
+      transition: opacity .2s ease, transform .2s ease;
     }
 
     .brand{
@@ -109,6 +113,7 @@
       background: rgba(255,255,255,.08);
       border: 1px solid rgba(255,255,255,.18);
       min-height: 0;
+      touch-action: none;
     }
 
     .video-wrap{
@@ -118,7 +123,7 @@
       background: #130f25;
     }
 
-    video, .veil, .mist, .grain, .frameGlow, .floating, .flash{
+    video, .veil, .mist, .grain, .frameGlow, .flash, .gestureOverlay{
       position: absolute;
       inset: 0;
       width: 100%;
@@ -127,13 +132,15 @@
 
     video{
       object-fit: cover;
-      transform: scaleX(-1);
+      transform-origin: center center;
+      transform: scaleX(-1) scale(1);
       filter:
         saturate(1.65)
         contrast(1.10)
         brightness(1.08)
         hue-rotate(12deg)
         blur(.25px);
+      will-change: transform, filter;
     }
 
     .veil{
@@ -192,6 +199,15 @@
         inset 0 0 0 1px rgba(255,255,255,.05),
         inset 0 0 120px rgba(255,255,255,.08),
         0 0 60px rgba(255,255,255,.06);
+      opacity: 1;
+      transition: opacity .2s ease;
+    }
+
+    .gestureOverlay{
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .18s ease;
+      background: radial-gradient(circle at center, rgba(255,255,255,.08), transparent 70%);
     }
 
     .hud{
@@ -241,8 +257,117 @@
       white-space: nowrap;
     }
 
+    .toast{
+      position: absolute;
+      left: 50%;
+      bottom: calc(84px + var(--safe-bottom));
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(0,0,0,.42);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.16);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow2);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 10;
+      max-width: min(92vw, 560px);
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .toast.show{
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .flash-btn{
+      position: absolute;
+      top: calc(14px + var(--safe-top));
+      right: 14px;
+      z-index: 11;
+      border: 0;
+      outline: none;
+      color: white;
+      background: rgba(255,255,255,.16);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow2);
+      transition: transform .18s ease, background .18s ease, opacity .18s ease;
+      user-select: none;
+    }
+
+    .flash-btn:active{ transform: scale(.98); }
+    .flash-btn.on{
+      background: rgba(255,239,159,.28);
+      color: #fffde7;
+    }
+
+    .flash{
+      pointer-events: none;
+      background: rgba(255,255,255,0);
+      opacity: 0;
+      transition: opacity .12s ease;
+      z-index: 8;
+    }
+
+    .flash.show{
+      opacity: 1;
+      background: rgba(255,255,255,.96);
+      transition: opacity .04s ease;
+    }
+
+    .capture-fab{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(18px + var(--safe-bottom));
+      z-index: 14;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      color: white;
+      font-weight: 800;
+      letter-spacing: .2px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), transparent 26%),
+        linear-gradient(135deg, rgba(255,255,255,.36), rgba(255,255,255,.14));
+      border: 2px solid rgba(255,255,255,.26);
+      box-shadow:
+        0 18px 44px rgba(0,0,0,.30),
+        inset 0 0 0 6px rgba(255,255,255,.08);
+      transition: transform .18s ease, opacity .18s ease, filter .18s ease;
+      user-select: none;
+    }
+
+    .capture-fab:active{ transform: translateX(-50%) scale(.97); }
+    .capture-fab:disabled{ opacity: .55; cursor: not-allowed; filter: grayscale(.2); }
+
+    .capture-fab .inner{
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      padding-top: 2px;
+      font-size: 14px;
+      text-align: center;
+      text-shadow: 0 1px 1px rgba(0,0,0,.2);
+    }
+
     .controls{
-      margin: 0 16px 16px;
+      margin: 0 16px calc(16px + var(--safe-bottom));
       padding: 14px;
       border-radius: 28px;
       background: var(--glass);
@@ -250,6 +375,7 @@
       border: 1px solid rgba(255,255,255,.18);
       box-shadow: var(--shadow2);
       z-index: 5;
+      transition: opacity .2s ease, transform .2s ease, max-height .2s ease;
     }
 
     .section-title{
@@ -311,9 +437,10 @@
 
     .actions{
       display: grid;
-      grid-template-columns: 1fr 1.35fr 1fr 1fr;
+      grid-template-columns: 1fr 1.2fr 1fr 1fr;
       gap: 10px;
       align-items: center;
+      margin-bottom: 12px;
     }
 
     .action-btn{
@@ -364,68 +491,70 @@
       letter-spacing: 0;
     }
 
-    .previewBox{
-      margin: 0 16px 16px;
-      padding: 12px;
-      border-radius: 28px;
-      background: rgba(255,255,255,.10);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,.16);
-      box-shadow: var(--shadow2);
-      display: none;
-    }
-
-    .previewHeader{
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      gap: 10px;
-    }
-
-    .previewHeader strong{
-      font-size: 14px;
-    }
-
-    .previewHeader span{
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .previewImage{
-      width: 100%;
-      border-radius: 22px;
-      display: block;
-      background: rgba(255,255,255,.08);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
-    }
-
     .tiny-note{
       font-size: 11px;
       color: rgba(255,255,255,.74);
       text-align: center;
-      margin-top: 8px;
       line-height: 1.35;
     }
 
     .hidden{ display: none !important; }
+
+    body.fullscreen-mode .topbar,
+    body.fullscreen-mode .controls{
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      max-height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      border-width: 0;
+    }
+
+    body.fullscreen-mode .stage{
+      position: fixed;
+      inset: 0;
+      margin: 0;
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+      width: 100vw;
+      height: 100vh;
+      z-index: 5;
+    }
+
+    body.fullscreen-mode .frameGlow{
+      inset: 10px;
+      border-radius: 24px;
+    }
+
+    body.fullscreen-mode .capture-fab{
+      width: 94px;
+      height: 94px;
+      bottom: calc(22px + var(--safe-bottom));
+    }
 
     @media (max-width: 520px){
       .brand{ max-width: 66vw; }
       .controls-grid{ grid-template-columns: 1fr; }
       .actions{ grid-template-columns: 1fr 1fr; }
       .ratio-group{ grid-template-columns: 1fr; }
+      .capture-fab{ width: 82px; height: 82px; }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="topbar">
+    <div class="topbar" id="topbar">
       <div class="brand">
         <strong>Dream Memory Camera</strong>
         <span>arco-íris surreal, polaroid, data manuscrita e imagem derretendo em luz</span>
       </div>
-      <button id="switchCam" class="pill-btn">Trocar câmera</button>
+      <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; justify-content:flex-end;">
+        <button id="switchCam" class="pill-btn">Trocar câmera</button>
+        <button id="fullscreenBtn" class="pill-btn">Tela cheia</button>
+      </div>
     </div>
 
     <div class="stage" id="stage">
@@ -435,9 +564,12 @@
         <div class="mist b"></div>
         <div class="veil"></div>
         <div class="grain"></div>
-        <div class="frameGlow"></div>
+        <div class="frameGlow" id="frameGlow"></div>
+        <div class="gestureOverlay" id="gestureOverlay"></div>
         <div class="flash" id="flash"></div>
       </div>
+
+      <button id="flashBtn" class="flash-btn">Flash</button>
 
       <div class="hud">
         <div class="status">
@@ -445,12 +577,18 @@
             <span class="dot"></span>
             <span id="camStatus" class="status-text">Iniciando câmera...</span>
           </div>
-          <div id="sizeStatus">meta: 40–60 KB</div>
+          <div id="sizeStatus">pronta para capturar</div>
         </div>
       </div>
+
+      <div class="toast" id="toast"></div>
     </div>
 
-    <div class="controls">
+    <button id="captureBtn" class="capture-fab" aria-label="Capturar foto">
+      <div class="inner">Tirar</div>
+    </button>
+
+    <div class="controls" id="controls">
       <div class="section-title">Proporção da foto</div>
       <div class="ratio-group">
         <button class="ratio-btn" data-ratio="landscape">Horizontal</button>
@@ -467,68 +605,132 @@
           <label for="meltStrength">Derretimento de luz</label>
           <input id="meltStrength" type="range" min="0" max="100" value="74" />
         </div>
+        <div class="control">
+          <label for="saturationStrength">Saturação</label>
+          <input id="saturationStrength" type="range" min="0" max="100" value="72" />
+        </div>
+        <div class="control">
+          <label>Modo de uso</label>
+          <div style="font-size:12px; color:rgba(255,255,255,.80); line-height:1.35;">
+            Pinça: zoom<br>
+            Arrastar na horizontal: brilho<br>
+            Arrastar na vertical: foco
+          </div>
+        </div>
       </div>
 
       <div class="actions">
         <button id="mirrorBtn" class="action-btn">Espelhar</button>
-        <button id="captureBtn" class="action-btn primary">
-          Capturar
-          <small>memória de sonho</small>
-        </button>
-        <button id="downloadBtn" class="action-btn" disabled>Baixar</button>
-        <button id="clearBtn" class="action-btn" disabled>Nova foto</button>
+        <button id="frameBtn" class="action-btn">Moldura</button>
+        <button id="downloadBtn" class="action-btn" disabled>Baixar última</button>
+        <button id="clearBtn" class="action-btn" disabled>Limpar última</button>
       </div>
 
       <div class="tiny-note">
-        A imagem final é comprimida para tentar ficar entre 40 e 60 KB. O visual foi puxado para um sonho de arco-íris bem intenso.
+        A captura salva direto e já libera a câmera para a próxima foto. Em alguns aparelhos, flash, zoom e foco dependem do suporte do navegador e da câmera.
       </div>
-    </div>
-
-    <div class="previewBox" id="previewBox">
-      <div class="previewHeader">
-        <strong>Prévia final</strong>
-        <span id="finalInfo">—</span>
-      </div>
-      <img id="previewImage" class="previewImage" alt="Foto capturada" />
     </div>
   </div>
 
   <script>
     const video = document.getElementById('video');
+    const stage = document.getElementById('stage');
+    const topbar = document.getElementById('topbar');
+    const controls = document.getElementById('controls');
+    const frameGlow = document.getElementById('frameGlow');
+    const gestureOverlay = document.getElementById('gestureOverlay');
+
     const camStatus = document.getElementById('camStatus');
     const sizeStatus = document.getElementById('sizeStatus');
-    const flash = document.getElementById('flash');
+    const flashEl = document.getElementById('flash');
+    const toast = document.getElementById('toast');
 
     const dreamIntensity = document.getElementById('dreamIntensity');
     const meltStrength = document.getElementById('meltStrength');
+    const saturationStrength = document.getElementById('saturationStrength');
 
     const mirrorBtn = document.getElementById('mirrorBtn');
+    const frameBtn = document.getElementById('frameBtn');
     const captureBtn = document.getElementById('captureBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const clearBtn = document.getElementById('clearBtn');
     const switchCam = document.getElementById('switchCam');
-
-    const previewBox = document.getElementById('previewBox');
-    const previewImage = document.getElementById('previewImage');
-    const finalInfo = document.getElementById('finalInfo');
+    const flashBtn = document.getElementById('flashBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
 
     const ratioButtons = Array.from(document.querySelectorAll('.ratio-btn'));
 
     let stream = null;
+    let videoTrack = null;
     let facingMode = 'user';
     let mirrored = true;
+    let frameEnabled = true;
+    let flashEnabled = false;
     let isCapturing = false;
+    let selectedRatio = 'square';
+
     let currentBlob = null;
     let currentObjectUrl = null;
-    let selectedRatio = 'square';
+    let lastDownloadUrl = null;
+
+    let capabilities = {
+      zoom: null,
+      torch: false,
+      focusDistance: null
+    };
+
+    let zoomValue = 1;
+    let brightnessValue = 0;
+    let focusValue = 0;
+    let saturationValue = Number(saturationStrength.value) / 100;
+
+    let gesture = {
+      active: false,
+      mode: null,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      lastX: 0,
+      lastY: 0,
+      startBrightness: 0,
+      startFocus: 0,
+      startZoom: 1,
+      initialPinchDistance: 0,
+      initialPinchZoom: 1,
+      pinchCenterX: 0,
+      pinchCenterY: 0
+    };
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
 
     function setStatus(text) {
       camStatus.textContent = text;
     }
 
+    function showToast(text, ms = 1200) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      window.clearTimeout(showToast._t);
+      showToast._t = window.setTimeout(() => {
+        toast.classList.remove('show');
+      }, ms);
+    }
+
     function updateMirrorButton() {
       mirrorBtn.textContent = mirrored ? 'Espelhar' : 'Normal';
-      video.style.transform = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
+      applyVideoTransform();
+    }
+
+    function updateFrameButton() {
+      frameBtn.textContent = frameEnabled ? 'Moldura' : 'Sem moldura';
+      frameGlow.style.opacity = frameEnabled ? '1' : '0';
+    }
+
+    function updateFlashButton() {
+      flashBtn.textContent = flashEnabled ? 'Flash ligado' : 'Flash';
+      flashBtn.classList.toggle('on', flashEnabled);
     }
 
     function updateRatioButtons() {
@@ -537,80 +739,62 @@
       });
     }
 
-    function applyPreviewStyle() {
+    function applyVideoTransform() {
+      const mirror = mirrored ? -1 : 1;
+      const mirrorTransform = `scaleX(${mirror})`;
+      const zoomTransform = `scale(${zoomValue.toFixed(3)})`;
+      video.style.transform = `${mirrorTransform} ${zoomTransform}`;
+      applyLiveFilters();
+    }
+
+    function applyLiveFilters() {
       const intensity = Number(dreamIntensity.value) / 100;
       const melt = Number(meltStrength.value) / 100;
+      const satSlider = Number(saturationStrength.value) / 100;
 
-      const blur = (0.10 + intensity * 0.95).toFixed(2);
-      const sat = (1.30 + intensity * 1.60).toFixed(2);
-      const contrast = (1.02 + intensity * 0.12).toFixed(2);
-      const brightness = (1.03 + intensity * 0.10).toFixed(2);
-      const hue = (6 + intensity * 20).toFixed(0);
-      const chroma = (0.6 + melt * 0.9).toFixed(2);
+      const saturation = clamp(1.0 + satSlider * 1.7 + intensity * 0.30, 0.8, 3.2);
+      const contrast = clamp(1.0 + intensity * 0.14, 0.9, 1.5);
+      const brightness = clamp(1.0 + brightnessValue + intensity * 0.08, 0.55, 1.95);
+      const hue = 8 + intensity * 18 + melt * 8;
+      const blur = clamp(0.18 + intensity * 0.42 + Math.max(0, 0.25 - focusValue * 0.25), 0, 2.6);
 
       video.style.filter = [
-        `saturate(${sat})`,
-        `contrast(${contrast})`,
-        `brightness(${brightness})`,
-        `hue-rotate(${hue}deg)`,
-        `blur(${blur + chroma * 0.10}px)`
+        `saturate(${saturation.toFixed(2)})`,
+        `contrast(${contrast.toFixed(2)})`,
+        `brightness(${brightness.toFixed(2)})`,
+        `hue-rotate(${hue.toFixed(0)}deg)`,
+        `blur(${blur.toFixed(2)}px)`
       ].join(' ');
     }
 
-    ratioButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedRatio = btn.dataset.ratio;
-        updateRatioButtons();
-      });
-    });
+    function applyFrameVisibility() {
+      frameGlow.style.opacity = frameEnabled ? '1' : '0';
+    }
 
-    dreamIntensity.addEventListener('input', applyPreviewStyle);
-    meltStrength.addEventListener('input', applyPreviewStyle);
-
-    mirrorBtn.addEventListener('click', () => {
-      mirrored = !mirrored;
-      updateMirrorButton();
-    });
-
-    switchCam.addEventListener('click', async () => {
-      facingMode = facingMode === 'user' ? 'environment' : 'user';
-      await startCamera();
-    });
-
-    clearBtn.addEventListener('click', () => {
-      if (currentObjectUrl) {
-        URL.revokeObjectURL(currentObjectUrl);
-        currentObjectUrl = null;
+    function stopCurrentStream() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        videoTrack = null;
       }
-      currentBlob = null;
-      previewImage.removeAttribute('src');
-      previewBox.style.display = 'none';
-      downloadBtn.disabled = true;
-      clearBtn.disabled = true;
-      finalInfo.textContent = '—';
-      sizeStatus.textContent = 'meta: 40–60 KB';
-      setStatus(`Câmera pronta • modo ${facingMode === 'user' ? 'frontal' : 'traseira'}`);
-    });
+    }
 
     async function startCamera() {
       try {
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          stream = null;
-        }
-
+        stopCurrentStream();
         setStatus('Abrindo câmera...');
 
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
             facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
           }
         });
 
         video.srcObject = stream;
+        videoTrack = stream.getVideoTracks()[0] || null;
 
         await new Promise(resolve => {
           if (video.readyState >= 2) return resolve();
@@ -618,15 +802,150 @@
         });
 
         await video.play();
-        applyPreviewStyle();
+        readCapabilities();
+        syncTrackSettings();
+        applyVideoTransform();
         updateMirrorButton();
+        updateFrameButton();
+        updateFlashButton();
         setStatus(`Câmera pronta • modo ${facingMode === 'user' ? 'frontal' : 'traseira'}`);
+        sizeStatus.textContent = 'pronta para capturar';
       } catch (err) {
         console.error(err);
         setStatus('Não foi possível abrir a câmera.');
         alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
       }
     }
+
+    function readCapabilities() {
+      capabilities = {
+        zoom: null,
+        torch: false,
+        focusDistance: null
+      };
+
+      try {
+        if (!videoTrack || typeof videoTrack.getCapabilities !== 'function') return;
+        const caps = videoTrack.getCapabilities();
+
+        if (caps.zoom) capabilities.zoom = { min: caps.zoom.min ?? 1, max: caps.zoom.max ?? 1, step: caps.zoom.step ?? 0.1 };
+        if (caps.focusDistance) capabilities.focusDistance = { min: caps.focusDistance.min ?? 0, max: caps.focusDistance.max ?? 0, step: caps.focusDistance.step ?? 0.1 };
+        capabilities.torch = Boolean(caps.torch);
+      } catch (err) {
+        console.warn(err);
+      }
+
+      if (!capabilities.torch) {
+        flashBtn.title = 'Flash indisponível neste navegador/câmera';
+      } else {
+        flashBtn.title = 'Liga/desliga o flash';
+      }
+    }
+
+    async function syncTrackSettings() {
+      if (!videoTrack) return;
+
+      try {
+        const advanced = [];
+
+        if (capabilities.zoom) {
+          advanced.push({
+            zoom: clamp(zoomValue, capabilities.zoom.min, capabilities.zoom.max)
+          });
+        }
+
+        if (capabilities.focusDistance) {
+          advanced.push({
+            focusMode: 'manual',
+            focusDistance: clamp(focusValue, capabilities.focusDistance.min, capabilities.focusDistance.max)
+          });
+        }
+
+        if (capabilities.torch) {
+          advanced.push({ torch: flashEnabled });
+        }
+
+        if (advanced.length && typeof videoTrack.applyConstraints === 'function') {
+          await videoTrack.applyConstraints({ advanced });
+        }
+      } catch (err) {
+        console.warn('applyConstraints falhou:', err);
+      }
+    }
+
+    function setZoom(nextZoom) {
+      const minZoom = capabilities.zoom ? capabilities.zoom.min : 1;
+      const maxZoom = capabilities.zoom ? capabilities.zoom.max : 6;
+      zoomValue = clamp(nextZoom, minZoom, maxZoom);
+      applyVideoTransform();
+      syncTrackSettings();
+    }
+
+    function setBrightnessFromDrag(deltaX, width) {
+      const change = deltaX / Math.max(160, width);
+      brightnessValue = clamp(gesture.startBrightness + change * 1.8, -0.55, 0.8);
+      applyLiveFilters();
+    }
+
+    function setFocusFromDrag(deltaY, height) {
+      const change = -deltaY / Math.max(160, height);
+      focusValue = clamp(gesture.startFocus + change * 1.2, -0.4, 1.0);
+      applyLiveFilters();
+      syncTrackSettings();
+    }
+
+    function setSaturationFromSlider() {
+      saturationValue = Number(saturationStrength.value) / 100;
+      applyLiveFilters();
+    }
+
+    function toggleFullscreen() {
+      const isFullscreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (isFullscreen) {
+        exitFullscreen();
+      } else {
+        enterFullscreen();
+      }
+    }
+
+    async function enterFullscreen() {
+      try {
+        document.body.classList.add('fullscreen-mode');
+        if (stage.requestFullscreen) {
+          await stage.requestFullscreen();
+        } else if (stage.webkitRequestFullscreen) {
+          await stage.webkitRequestFullscreen();
+        }
+        fullscreenBtn.textContent = 'Sair';
+        showToast('Modo tela cheia ativado');
+      } catch (err) {
+        console.warn(err);
+        document.body.classList.add('fullscreen-mode');
+        fullscreenBtn.textContent = 'Sair';
+      }
+    }
+
+    async function exitFullscreen() {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        }
+      } catch (err) {
+        console.warn(err);
+      } finally {
+        document.body.classList.remove('fullscreen-mode');
+        fullscreenBtn.textContent = 'Tela cheia';
+        showToast('Modo tela cheia desativado');
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const isFullscreen = Boolean(document.fullscreenElement);
+      document.body.classList.toggle('fullscreen-mode', isFullscreen);
+      fullscreenBtn.textContent = isFullscreen ? 'Sair' : 'Tela cheia';
+    });
 
     function waitVideoReady() {
       return new Promise(resolve => {
@@ -642,8 +961,6 @@
     function getRatioConfig(ratio) {
       if (ratio === 'landscape') {
         return {
-          imgW: 960,
-          imgH: 720,
           outerW: 1120,
           outerH: 960,
           photoX: 80,
@@ -655,8 +972,6 @@
 
       if (ratio === 'portrait') {
         return {
-          imgW: 720,
-          imgH: 960,
           outerW: 880,
           outerH: 1220,
           photoX: 80,
@@ -667,8 +982,6 @@
       }
 
       return {
-        imgW: 860,
-        imgH: 860,
         outerW: 1020,
         outerH: 1120,
         photoX: 80,
@@ -678,7 +991,7 @@
       };
     }
 
-    function coverCropParams(srcW, srcH, dstW, dstH) {
+    function coverCropParams(srcW, srcH, dstW, dstH, zoom = 1) {
       const srcRatio = srcW / srcH;
       const dstRatio = dstW / dstH;
 
@@ -690,6 +1003,15 @@
       } else {
         sh = Math.round(srcW / dstRatio);
         sy = Math.round((srcH - sh) / 2);
+      }
+
+      if (zoom > 1) {
+        const zsw = Math.round(sw / zoom);
+        const zsh = Math.round(sh / zoom);
+        sx += Math.round((sw - zsw) / 2);
+        sy += Math.round((sh - zsh) / 2);
+        sw = zsw;
+        sh = zsh;
       }
 
       return { sx, sy, sw, sh };
@@ -855,15 +1177,11 @@
 
       for (let i = 0; i < count; i++) {
         const x = (Math.sin(i * 12.7 + t * 0.35) * 0.34 + 0.5) * w;
-        const y = (Math.cos(i * 9.1 - t * 0.25) * 0.34 + 0.5) * h;
-        const r = Math.min(w, h) * (0.006 + (i % 5) * 0.0012);
-
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 6);
-        g.addColorStop(0, 'rgba(255,255,255,.16)');
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
+        const y = (Math.cos(i * 9.1 - t * 0.28) * 0.34 + 0.5) * h;
+        const r = 1 + (i % 3);
         ctx.beginPath();
-        ctx.arc(x, y, r * 6, 0, Math.PI * 2);
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,.8)' : 'rgba(255,214,237,.68)';
+        ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -871,19 +1189,20 @@
     }
 
     function drawMeltingLight(ctx, srcCanvas, w, h, melt, intensity) {
-      const phase = performance.now() / 1200;
-      const stripH = Math.max(4, Math.round(h / 96));
-
+      const stripCount = Math.max(10, Math.round(16 + melt * 12));
+      const stripW = w / stripCount;
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
 
-      for (let y = 0; y < h; y += stripH) {
-        const yy = y / h;
-        const wave = Math.sin(yy * 8.5 + phase) * 0.5 + Math.cos(yy * 13.2 - phase * 1.25) * 0.5;
-        const offset = Math.max(0, (melt * 42 * yy) + wave * melt * 10);
-        const alpha = 0.05 + intensity * 0.05;
-        ctx.globalAlpha = alpha;
-        ctx.drawImage(srcCanvas, 0, y, w, stripH, 0, y + offset, w, stripH);
+      for (let i = 0; i < stripCount; i++) {
+        const sx = Math.floor(i * (srcCanvas.width / stripCount));
+        const sw = Math.ceil(srcCanvas.width / stripCount);
+        const stripH = Math.round(h * (0.12 + (Math.sin(i * 1.7 + melt * 5) * 0.04 + 0.06) * (0.4 + melt)));
+        const y = Math.round(h * (0.32 + Math.sin(i * 0.9 + melt * 6) * 0.12) + i * 1.2);
+
+        ctx.globalAlpha = 0.08 + melt * 0.08;
+        ctx.filter = `blur(${Math.max(1.1, 1.2 + melt * 4.2)}px) saturate(${1.2 + intensity * 0.35}) brightness(${1.04 + intensity * 0.08})`;
+        ctx.drawImage(srcCanvas, sx, 0, sw, srcCanvas.height, i * stripW, y, stripW + 1, stripH);
       }
 
       const softStretch = document.createElement('canvas');
@@ -900,7 +1219,7 @@
       ctx.restore();
     }
 
-    function renderDreamMemory(sourceVideo, config, mirrored, intensity, melt) {
+    function renderDreamMemory(sourceVideo, config, mirroredImage, intensity, melt) {
       const outer = document.createElement('canvas');
       outer.width = config.outerW;
       outer.height = config.outerH;
@@ -930,7 +1249,8 @@
       const photoY = config.photoY;
       const photoW = config.photoW;
       const photoH = config.photoH;
-      const { sx, sy, sw, sh } = coverCropParams(sourceVideo.videoWidth, sourceVideo.videoHeight, photoW, photoH);
+
+      const crop = coverCropParams(sourceVideo.videoWidth, sourceVideo.videoHeight, photoW, photoH, zoomValue);
 
       const base = document.createElement('canvas');
       base.width = photoW;
@@ -938,11 +1258,11 @@
       const bctx = base.getContext('2d');
 
       bctx.save();
-      if (mirrored) {
+      if (mirroredImage) {
         bctx.translate(photoW, 0);
         bctx.scale(-1, 1);
       }
-      bctx.drawImage(sourceVideo, sx, sy, sw, sh, 0, 0, photoW, photoH);
+      bctx.drawImage(sourceVideo, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, photoW, photoH);
       bctx.restore();
 
       ctx.save();
@@ -974,12 +1294,14 @@
 
       ctx.restore();
 
-      ctx.save();
-      ctx.strokeStyle = 'rgba(248, 240, 236, .90)';
-      ctx.lineWidth = 2;
-      roundRectPath(ctx, photoX, photoY, photoW, photoH, 22);
-      ctx.stroke();
-      ctx.restore();
+      if (frameEnabled) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(248, 240, 236, .90)';
+        ctx.lineWidth = 2;
+        roundRectPath(ctx, photoX, photoY, photoW, photoH, 22);
+        ctx.stroke();
+        ctx.restore();
+      }
 
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
@@ -1024,6 +1346,7 @@
       ctx.fillRect(0, 0, outer.width, outer.height);
       ctx.restore();
 
+      ctx.restore();
       return outer;
     }
 
@@ -1083,6 +1406,23 @@
       return bestBlob || await toBlob(working, 0.5);
     }
 
+    function downloadBlob(blob, filename) {
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      if (lastDownloadUrl) {
+        URL.revokeObjectURL(lastDownloadUrl);
+      }
+      lastDownloadUrl = url;
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
     async function capturePhoto() {
       if (isCapturing) return;
       if (!video.videoWidth || !video.videoHeight) {
@@ -1094,8 +1434,11 @@
       captureBtn.disabled = true;
       switchCam.disabled = true;
       mirrorBtn.disabled = true;
-      clearBtn.disabled = true;
+      frameBtn.disabled = true;
       downloadBtn.disabled = true;
+      clearBtn.disabled = true;
+      flashBtn.disabled = true;
+      showToast('Capturando...', 800);
 
       try {
         await waitVideoReady();
@@ -1103,15 +1446,13 @@
         const intensity = Number(dreamIntensity.value) / 100;
         const melt = Number(meltStrength.value) / 100;
         const cfg = getRatioConfig(selectedRatio);
-
         const rendered = renderDreamMemory(video, cfg, mirrored, intensity, melt);
 
-        flash.classList.remove('show');
-        void flash.offsetWidth;
-        flash.classList.add('show');
+        flashEl.classList.remove('show');
+        void flashEl.offsetWidth;
+        flashEl.classList.add('show');
 
-        setStatus('Processando memória de sonho...');
-
+        setStatus('Salvando foto...');
         const blob = await encodeTargetBlob(rendered, 40, 60);
         if (!blob) {
           setStatus('Falha ao salvar a foto.');
@@ -1119,21 +1460,24 @@
           return;
         }
 
-        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+        if (currentObjectUrl) {
+          URL.revokeObjectURL(currentObjectUrl);
+          currentObjectUrl = null;
+        }
+
         currentBlob = blob;
         currentObjectUrl = URL.createObjectURL(blob);
 
-        previewImage.src = currentObjectUrl;
-        previewBox.style.display = 'block';
+        const kb = (blob.size / 1024).toFixed(1);
+        sizeStatus.textContent = `salva • ${kb} KB`;
+        setStatus('Foto salva');
+        showToast(`Foto salva • ${kb} KB`);
+
+        const fileName = `dream-memory-${selectedRatio}-${Date.now()}.jpg`;
+        downloadBlob(blob, fileName);
 
         downloadBtn.disabled = false;
         clearBtn.disabled = false;
-
-        const kb = (blob.size / 1024).toFixed(1);
-        finalInfo.textContent = `${kb} KB • ${selectedRatio}`;
-        sizeStatus.textContent = `foto final: ${kb} KB`;
-
-        setStatus('Foto pronta');
       } catch (err) {
         console.error(err);
         setStatus('Erro ao capturar a foto.');
@@ -1143,33 +1487,209 @@
         captureBtn.disabled = false;
         switchCam.disabled = false;
         mirrorBtn.disabled = false;
+        frameBtn.disabled = false;
+        flashBtn.disabled = false;
+        window.setTimeout(() => flashEl.classList.remove('show'), 120);
       }
     }
+
+    function clearLast() {
+      if (currentObjectUrl) {
+        URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = null;
+      }
+      currentBlob = null;
+      downloadBtn.disabled = true;
+      clearBtn.disabled = true;
+      sizeStatus.textContent = 'pronta para capturar';
+      setStatus(`Câmera pronta • modo ${facingMode === 'user' ? 'frontal' : 'traseira'}`);
+      showToast('Última foto removida');
+    }
+
+    async function toggleFlash() {
+      flashEnabled = !flashEnabled;
+      updateFlashButton();
+      if (!capabilities.torch) {
+        showToast('Flash não suportado neste aparelho');
+        return;
+      }
+      await syncTrackSettings();
+      showToast(flashEnabled ? 'Flash ligado' : 'Flash desligado');
+    }
+
+    function pointerDistance(a, b) {
+      const dx = b.clientX - a.clientX;
+      const dy = b.clientY - a.clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    function getPrimaryPoint(evt) {
+      return { x: evt.clientX, y: evt.clientY };
+    }
+
+    stage.addEventListener('pointerdown', (evt) => {
+      stage.setPointerCapture?.(evt.pointerId);
+
+      if (evt.pointerType === 'touch' || evt.pointerType === 'pen' || evt.pointerType === 'mouse') {
+        gesture.active = true;
+        gesture.pointerId = evt.pointerId;
+        gesture.startX = evt.clientX;
+        gesture.startY = evt.clientY;
+        gesture.lastX = evt.clientX;
+        gesture.lastY = evt.clientY;
+        gesture.startBrightness = brightnessValue;
+        gesture.startFocus = focusValue;
+        gesture.startZoom = zoomValue;
+        gesture.mode = 'drag';
+      }
+
+      if (evt.pointerType === 'touch') {
+        gestureOverlay.style.opacity = '1';
+      }
+    });
+
+    stage.addEventListener('pointermove', (evt) => {
+      if (!gesture.active || gesture.pointerId !== evt.pointerId) return;
+
+      gesture.lastX = evt.clientX;
+      gesture.lastY = evt.clientY;
+
+      const dx = evt.clientX - gesture.startX;
+      const dy = evt.clientY - gesture.startY;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      if (evt.pointerType === 'touch' && evt.pressure === 0 && evt.buttons === 0) return;
+
+      if (absX > absY) {
+        setBrightnessFromDrag(dx, stage.clientWidth);
+      } else {
+        setFocusFromDrag(dy, stage.clientHeight);
+      }
+    });
+
+    stage.addEventListener('pointerup', (evt) => {
+      if (gesture.pointerId === evt.pointerId) {
+        gesture.active = false;
+        gesture.pointerId = null;
+      }
+      gestureOverlay.style.opacity = '0';
+    });
+
+    stage.addEventListener('pointercancel', () => {
+      gesture.active = false;
+      gesture.pointerId = null;
+      gestureOverlay.style.opacity = '0';
+    });
+
+    let pinchState = {
+      active: false,
+      ids: [],
+      startDistance: 0,
+      startZoom: 1
+    };
+
+    stage.addEventListener('touchstart', (evt) => {
+      if (evt.touches.length === 2) {
+        pinchState.active = true;
+        pinchState.ids = [evt.touches[0].identifier, evt.touches[1].identifier];
+        pinchState.startDistance = pointerDistance(evt.touches[0], evt.touches[1]);
+        pinchState.startZoom = zoomValue;
+      }
+    }, { passive: true });
+
+    stage.addEventListener('touchmove', (evt) => {
+      if (!pinchState.active || evt.touches.length !== 2) return;
+      const t1 = evt.touches[0];
+      const t2 = evt.touches[1];
+      const dist = pointerDistance(t1, t2);
+
+      const scale = dist / Math.max(20, pinchState.startDistance);
+      setZoom(pinchState.startZoom * scale);
+
+      const midX = (t1.clientX + t2.clientX) / 2;
+      const midY = (t1.clientY + t2.clientY) / 2;
+      gestureOverlay.style.opacity = '1';
+      gestureOverlay.style.background = `radial-gradient(circle at ${midX}px ${midY}px, rgba(255,255,255,.12), transparent 28%)`;
+    }, { passive: true });
+
+    stage.addEventListener('touchend', (evt) => {
+      if (evt.touches.length < 2) {
+        pinchState.active = false;
+        gestureOverlay.style.opacity = '0';
+        gestureOverlay.style.background = 'radial-gradient(circle at center, rgba(255,255,255,.08), transparent 70%)';
+      }
+    }, { passive: true });
+
+    stage.addEventListener('wheel', (evt) => {
+      evt.preventDefault();
+      const delta = evt.deltaY > 0 ? -0.08 : 0.08;
+      setZoom(zoomValue + delta);
+    }, { passive: false });
+
+    ratioButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedRatio = btn.dataset.ratio;
+        updateRatioButtons();
+      });
+    });
+
+    dreamIntensity.addEventListener('input', applyLiveFilters);
+    meltStrength.addEventListener('input', applyLiveFilters);
+    saturationStrength.addEventListener('input', setSaturationFromSlider);
+
+    mirrorBtn.addEventListener('click', () => {
+      mirrored = !mirrored;
+      updateMirrorButton();
+      showToast(mirrored ? 'Espelhamento ligado' : 'Espelhamento desligado');
+    });
+
+    frameBtn.addEventListener('click', () => {
+      frameEnabled = !frameEnabled;
+      updateFrameButton();
+      showToast(frameEnabled ? 'Moldura ligada' : 'Moldura desligada');
+    });
 
     captureBtn.addEventListener('click', capturePhoto);
 
     downloadBtn.addEventListener('click', () => {
       if (!currentBlob) return;
+      downloadBlob(currentBlob, `dream-memory-${selectedRatio}-${Date.now()}.jpg`);
+      showToast('Download iniciado');
+    });
 
-      const a = document.createElement('a');
-      const url = URL.createObjectURL(currentBlob);
-      a.href = url;
-      a.download = `dream-memory-${selectedRatio}-${Date.now()}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+    clearBtn.addEventListener('click', clearLast);
 
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    switchCam.addEventListener('click', async () => {
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      await startCamera();
+    });
+
+    flashBtn.addEventListener('click', toggleFlash);
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    document.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Escape' && document.fullscreenElement) {
+        exitFullscreen();
+      }
     });
 
     window.addEventListener('beforeunload', () => {
-      if (stream) stream.getTracks().forEach(track => track.stop());
+      stopCurrentStream();
       if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+      if (lastDownloadUrl) URL.revokeObjectURL(lastDownloadUrl);
     });
 
-    applyPreviewStyle();
+    window.addEventListener('resize', () => {
+      applyVideoTransform();
+    });
+
+    applyFrameVisibility();
     updateMirrorButton();
+    updateFrameButton();
+    updateFlashButton();
     updateRatioButtons();
+    applyLiveFilters();
     startCamera();
   </script>
 </body>
